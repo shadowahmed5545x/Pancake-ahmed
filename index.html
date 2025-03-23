@@ -140,8 +140,11 @@
             <!-- إدخال وقت اللعب يدويًا -->
             <input type="number" id="customTime" placeholder="أدخل مدة اللعب بالدقائق" min="1">
 
+            <!-- زر بدء اللعب -->
+            <button type="button" onclick="startSession()">ابدأ اللعب</button>
+
             <!-- زر بدء الجلسة -->
-            <button type="button" onclick="startSession()">بدء الجلسة</button>
+            <button type="button" onclick="startSessionTime()">ابدأ الجلسة</button>
         </form>
         
         <!-- مكان عرض الوقت المتبقي -->
@@ -166,10 +169,25 @@
             const startTime = new Date().toLocaleTimeString(); // وقت البدء
             const timeRemaining = customTime * 60; // تحويل الدقائق إلى ثواني
 
-            document.getElementById('timer').textContent = `تم بدء الجلسة لـ ${customTime} دقيقة.`;
+            document.getElementById('timer').textContent = `تم تسجيل الدخول لـ ${customTime} دقيقة.`;
 
             // إضافة الجهاز إلى الشريط الجانبي
             addDeviceToSidebar(device, username, timeRemaining, startTime);
+        }
+
+        // إضافة زر بدء الجلسة
+        function startSessionTime() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("يرجى إدخال اسم المستخدم.");
+                return;
+            }
+
+            const startTime = new Date().toLocaleTimeString();
+            document.getElementById('timer').textContent = `بدأت الجلسة في: ${startTime}`;
+            
+            // إضافة اسم المستخدم إلى الشريط الجانبي
+            addDeviceToSidebar('جلسة', username, 0, startTime);
         }
 
         // إضافة الجهاز إلى الشريط الجانبي
