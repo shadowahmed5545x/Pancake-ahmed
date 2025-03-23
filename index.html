@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة وقت اللعب - Pan Cafe</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            flex-direction: row;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            width: 400px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .container input, .container select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .container button:hover {
+            background-color: #45a049;
+        }
+
+        /* الشريط الجانبي */
+        .sidebar {
+            background-color: #ddd;
+            padding: 20px;
+            width: 250px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            text-align: center;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #fff;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- الشريط الجانبي للأجهزة المضافة -->
+    <div class="sidebar">
+        <h3>الأجهزة المضافة</h3>
+        <ul id="device-list">
+            <!-- سيتم إضافة الأجهزة هنا -->
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>إدارة وقت اللعب</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="اسم المستخدم" required>
+            
+            <!-- اختيار الجهاز -->
+            <select id="device" required>
+                <option value="" disabled selected>اختر الجهاز</option>
+                <option value="playstation">PlayStation</option>
+                <option value="xbox">Xbox</option>
+                <option value="pc">PC</option>
+            </select>
+
+            <!-- إدخال وقت اللعب يدويًا -->
+            <input type="number" id="customTime" placeholder="أدخل مدة اللعب بالدقائق" min="1">
+
+            <!-- زر بدء اللعب -->
+            <button type="button" onclick="startSession()">ابدأ اللعب</button>
+
+            <!-- زر إضافة جهاز جديد بوقت جديد -->
+            <button type="button" onclick="addNewDevice()">إضافة جهاز جديد بوقت جديد</button>
+
+            <!-- زر تزويد الوقت -->
+            <button type="button" onclick="addExtraTime()">تزويد وقت يدوي</button>
+        </form>
+        
+        <!-- مكان عرض الوقت المتبقي -->
+        <div id="timer"></div>
+    </div>
+
+    <script>
+        let countdown;
+        let timeRemaining = 0;
+        let devices = [];
+        const pricePerHour = 10; // سعر الساعة
+
+        // بدء الجلسة
+        function startSession() {
+            const username = document.getElementById('username').value;
+            const customTime = parseInt(document.getElementById('customTime').value);
+            const device = document.getElementById('device').value;
+
+            if (!username || !device || !customTime) {
+                alert("يرجى إدخال جميع البيانات (اسم المستخدم، الجهاز، الوقت).");
+                return;
+            }
+
+            const startTime = new Date().toLocaleTimeString(); // وقت البدء
+            timeRemaining = customTime * 60; // تحويل الدقائق إلى ثواني
+
+            document.getElementById('timer').textContent = `تم تسجيل الدخول لـ ${customTime} دقيقة.`;
+
+            // تشغيل العداد الزمني
+            countdown = setInterval(function() {
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+
+                document.getElementById('timer').textContent = `الوقت المتبقي: ${minutes} دقائق ${seconds} ثواني`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(countdown);
+                    document.getElementById('timer').textContent = "انتهى وقت اللعب.";
+                    alert("انتهى وقت اللعب.");
+                }
+
+                timeRemaining--;
+            }, 1000);
+
+            // إضافة الجهاز إلى الشريط الجانبي
+            addDeviceToSidebar(device, username, customTime * 60, startTime);
+        }
+
+        // إضافة الجهاز إلى الشريط الجانبي
+        function addDeviceToSidebar(device, username, initialTime, startTime) {
+            const deviceList = document.getElementById('device-list');
+            const listItem = document.createElement('li');
+            const deviceInfo = document.createElement('span');
+            const deviceTime = document.createElement('span');
+            deviceTime.id = `time-${device}-${devices.length}`; // معرف خاص لكل جهاز لتحديث الوقت
+            deviceInfo.textContent = `الجهاز: ${device} | المستخدم: ${username} | بدأ في: ${startTime}`;
+            deviceTime.textContent = ` | الوقت المتبقي: ${Math.floor(initialTime / 60)} دقائق`;
+
+            listItem.appendChild(deviceInfo);
+            listItem.appendChild(deviceTime);
+            deviceList.appendChild(listItem);
+
+            // بدء العداد الخاص بالجهاز الجديد
+            devices.push({ device, username, timeRemaining: initialTime, startTime });
+            updateDeviceTime(devices.length - 1, initialTime);
+        }
+
+        // تحديث الوقت المتبقي للجهاز في الشريط الجانبي
+        function updateDeviceTime(index, initialTime) {
+            const deviceTime = document.getElementById(`time-${devices[index].device}-${index}`);
+            const interval = setInterval(() => {
+                const minutes = Math.floor(devices[index].timeRemaining / 60);
+                const seconds = devices[index].timeRemaining % 60;
+                deviceTime.textContent = ` | الوقت المتبقي: ${minutes} دقائق ${seconds} ثواني`;
+
+                if (devices[index].timeRemaining <= 0) {
+                    clearInterval(interval);
+                    deviceTime.textContent = " | انتهى الوقت";
+                }
+
+                devices[index].timeRemaining--;
+            }, 1000);
+        }
+
+        // إضافة جهاز جديد
+        function addNewDevice() {
+            const username = document.getElementById('username').value;
+            const customTime = parseInt(document.getElementById('customTime').value);
+            const device = document.getElementById('device').value;
+
+            if (!username || !device || !customTime) {
+                alert("يرجى إدخال جميع البيانات (اسم المستخدم، الجهاز، الوقت).");
+                return;
+            }
+
+            // إيقاف العداد الحالي إذا كان يعمل
+            clearInterval(countdown);
+
+            // إضافة الجهاز الجديد والبدء في العداد الجديد
+            addDeviceToSidebar(device, username, customTime * 60, new Date().toLocaleTimeString());
+            startSession();
+        }
+
+        // تزويد الوقت يدويًا
+        function addExtraTime() {
+            const extraTime = parseInt(prompt("أدخل الوقت الإضافي بالدقائق:"));
+            if (!isNaN(extraTime) && extraTime > 0) {
+                timeRemaining += extraTime * 60;
+                alert(`تم إضافة ${extraTime} دقائق إضافية.`);
+            } else {
+                alert("الرجاء إدخال قيمة صالحة.");
+            }
+        }
+    </script>
+
+</body>
+</html>
