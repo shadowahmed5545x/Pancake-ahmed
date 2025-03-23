@@ -82,6 +82,35 @@
             border-radius: 8px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .sidebar ul li button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .sidebar ul li .extra-time {
+            position: absolute;
+            right: 50px;
+            top: 10px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -111,14 +140,8 @@
             <!-- إدخال وقت اللعب يدويًا -->
             <input type="number" id="customTime" placeholder="أدخل مدة اللعب بالدقائق" min="1">
 
-            <!-- زر بدء اللعب -->
-            <button type="button" onclick="startSession()">ابدأ اللعب</button>
-
-            <!-- زر إضافة جهاز جديد بوقت جديد -->
-            <button type="button" onclick="addNewDevice()">إضافة جهاز جديد بوقت جديد</button>
-
-            <!-- زر تزويد الوقت -->
-            <button type="button" onclick="addExtraTime()">تزويد وقت يدوي</button>
+            <!-- زر بدء الجلسة -->
+            <button type="button" onclick="startSession()">بدء الجلسة</button>
         </form>
         
         <!-- مكان عرض الوقت المتبقي -->
@@ -127,9 +150,7 @@
 
     <script>
         let countdown;
-        let timeRemaining = 0;
         let devices = [];
-        const pricePerHour = 10; // سعر الساعة
 
         // بدء الجلسة
         function startSession() {
@@ -143,94 +164,84 @@
             }
 
             const startTime = new Date().toLocaleTimeString(); // وقت البدء
-            timeRemaining = customTime * 60; // تحويل الدقائق إلى ثواني
+            const timeRemaining = customTime * 60; // تحويل الدقائق إلى ثواني
 
-            document.getElementById('timer').textContent = `تم تسجيل الدخول لـ ${customTime} دقيقة.`;
-
-            // تشغيل العداد الزمني
-            countdown = setInterval(function() {
-                const minutes = Math.floor(timeRemaining / 60);
-                const seconds = timeRemaining % 60;
-
-                document.getElementById('timer').textContent = `الوقت المتبقي: ${minutes} دقائق ${seconds} ثواني`;
-
-                if (timeRemaining <= 0) {
-                    clearInterval(countdown);
-                    document.getElementById('timer').textContent = "انتهى وقت اللعب.";
-                    alert("انتهى وقت اللعب.");
-                }
-
-                timeRemaining--;
-            }, 1000);
+            document.getElementById('timer').textContent = `تم بدء الجلسة لـ ${customTime} دقيقة.`;
 
             // إضافة الجهاز إلى الشريط الجانبي
-            addDeviceToSidebar(device, username, customTime * 60, startTime);
+            addDeviceToSidebar(device, username, timeRemaining, startTime);
         }
 
         // إضافة الجهاز إلى الشريط الجانبي
-        function addDeviceToSidebar(device, username, initialTime, startTime) {
+        function addDeviceToSidebar(device, username, timeRemaining, startTime) {
             const deviceList = document.getElementById('device-list');
             const listItem = document.createElement('li');
             const deviceInfo = document.createElement('span');
             const deviceTime = document.createElement('span');
-            deviceTime.id = `time-${device}-${devices.length}`; // معرف خاص لكل جهاز لتحديث الوقت
-            deviceInfo.textContent = `الجهاز: ${device} | المستخدم: ${username} | بدأ في: ${startTime}`;
-            deviceTime.textContent = ` | الوقت المتبقي: ${Math.floor(initialTime / 60)} دقائق`;
+            const removeButton = document.createElement('button');
+            const addTimeButton = document.createElement('button');
+
+            const deviceId = devices.length;
+            deviceTime.id = `time-${deviceId}`; // معرف خاص لكل جهاز لتحديث الوقت
+            deviceInfo.textContent = `الجهاز: ${device} | المستخدم: ${username} | بدأ في: ${startTime}`; // عرض وقت البدء
+            deviceTime.textContent = ` | الوقت المتبقي: ${Math.floor(timeRemaining / 60)} دقائق`;
+
+            // زر إزالة الجهاز
+            removeButton.textContent = "X";
+            removeButton.onclick = function() {
+                removeDevice(listItem, deviceId);
+            };
+
+            // زر تزويد وقت يدوي
+            addTimeButton.textContent = "+";
+            addTimeButton.classList.add("extra-time");
+            addTimeButton.onclick = function() {
+                addExtraTime(deviceId);
+            };
 
             listItem.appendChild(deviceInfo);
             listItem.appendChild(deviceTime);
+            listItem.appendChild(addTimeButton);
+            listItem.appendChild(removeButton);
             deviceList.appendChild(listItem);
 
-            // بدء العداد الخاص بالجهاز الجديد
-            devices.push({ device, username, timeRemaining: initialTime, startTime });
-            updateDeviceTime(devices.length - 1, initialTime);
+            // حفظ معلومات الجهاز
+            devices.push({ device, username, timeRemaining });
+
+            // بدء العداد الزمني الخاص بالجهاز
+            updateDeviceTime(deviceId);
         }
 
         // تحديث الوقت المتبقي للجهاز في الشريط الجانبي
-        function updateDeviceTime(index, initialTime) {
-            const deviceTime = document.getElementById(`time-${devices[index].device}-${index}`);
+        function updateDeviceTime(deviceId) {
             const interval = setInterval(() => {
-                const minutes = Math.floor(devices[index].timeRemaining / 60);
-                const seconds = devices[index].timeRemaining % 60;
-                deviceTime.textContent = ` | الوقت المتبقي: ${minutes} دقائق ${seconds} ثواني`;
-
-                if (devices[index].timeRemaining <= 0) {
+                if (devices[deviceId].timeRemaining <= 0) {
                     clearInterval(interval);
-                    deviceTime.textContent = " | انتهى الوقت";
+                    document.getElementById(`time-${deviceId}`).textContent = " | انتهى الوقت";
+                } else {
+                    const minutes = Math.floor(devices[deviceId].timeRemaining / 60);
+                    const seconds = devices[deviceId].timeRemaining % 60;
+                    document.getElementById(`time-${deviceId}`).textContent = ` | الوقت المتبقي: ${minutes} دقائق ${seconds} ثواني`;
+                    devices[deviceId].timeRemaining--;
                 }
-
-                devices[index].timeRemaining--;
             }, 1000);
         }
 
-        // إضافة جهاز جديد
-        function addNewDevice() {
-            const username = document.getElementById('username').value;
-            const customTime = parseInt(document.getElementById('customTime').value);
-            const device = document.getElementById('device').value;
-
-            if (!username || !device || !customTime) {
-                alert("يرجى إدخال جميع البيانات (اسم المستخدم، الجهاز، الوقت).");
-                return;
-            }
-
-            // إيقاف العداد الحالي إذا كان يعمل
-            clearInterval(countdown);
-
-            // إضافة الجهاز الجديد والبدء في العداد الجديد
-            addDeviceToSidebar(device, username, customTime * 60, new Date().toLocaleTimeString());
-            startSession();
-        }
-
         // تزويد الوقت يدويًا
-        function addExtraTime() {
+        function addExtraTime(deviceId) {
             const extraTime = parseInt(prompt("أدخل الوقت الإضافي بالدقائق:"));
             if (!isNaN(extraTime) && extraTime > 0) {
-                timeRemaining += extraTime * 60;
+                devices[deviceId].timeRemaining += extraTime * 60;
                 alert(`تم إضافة ${extraTime} دقائق إضافية.`);
             } else {
                 alert("الرجاء إدخال قيمة صالحة.");
             }
+        }
+
+        // إزالة الجهاز
+        function removeDevice(listItem, deviceId) {
+            listItem.remove();
+            devices.splice(deviceId, 1);
         }
     </script>
 
